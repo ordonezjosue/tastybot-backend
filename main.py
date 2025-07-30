@@ -11,7 +11,7 @@ class LoginRequest(BaseModel):
     login: str
     password: str
 
-# ✅ POST /login
+# ✅ POST /login - Authenticates and returns session token
 @app.post("/login")
 def login(credentials: LoginRequest):
     url = f"{BASE_URL}/sessions"
@@ -24,26 +24,28 @@ def login(credentials: LoginRequest):
 
     if response.status_code != 200:
         raise HTTPException(status_code=response.status_code, detail=response.text)
-    
-    return {"session_token": response.json()["data"]["session-token"]}
 
-# ✅ GET /accounts — requires session token header
+    token = response.json()["data"]["session-token"]
+    return {"session_token": token}
+
+# ✅ GET /accounts - Fetches account info using session token
 @app.get("/accounts")
-def get_accounts(session_token: str = Header(...)):
+def get_accounts(authorization: str = Header(..., description="Paste your session token here (without 'Bearer ')")):
     url = f"{BASE_URL}/accounts"
     headers = {
-        "Authorization": f"Bearer {session_token}",
-        "User-Agent": "tastybot-client/1.0"
+        "Authorization": f"Bearer {authorization}",
+        "User-Agent": "tastybot-client/1.0",
+        "Accept": "application/json"
     }
 
     response = requests.get(url, headers=headers)
 
     if response.status_code != 200:
         raise HTTPException(status_code=response.status_code, detail=response.text)
-    
+
     return response.json()
 
-# ✅ Optional: Friendly homepage
+# ✅ GET / - Friendly homepage
 @app.get("/")
 def root():
     return {
